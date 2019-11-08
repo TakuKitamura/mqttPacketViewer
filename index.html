@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<title>MQTT Packet Viewer</title>
+<head>
+  <style type='text/css'>
+    h1{
+      text-align: center;
+    }
+    table{
+      border-collapse: collapse;
+      margin: 3% auto;
+    }
+    td,th{
+      padding: 10px;
+      border: 1px solid #dfdfdf;
+    }
+    th{
+      color:#dfdfdf;
+      background:#1d4d7c;
+    }
+    table tr td:nth-child(odd){
+      background:#ececec;
+    }
+    .sticky_table thead th {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+  </style>
+</head>
+<script>
+    function sanitaize(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&quot;').replace(/'/g, '&#39;')
+    }
+
+    function handleDownload() {
+        var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+        var table = document.getElementById('mqtt_packet_table')
+        var data_csv=''
+
+        for(var i = 0;  i < table.rows.length; i++){
+          for(var j = 0; j < table.rows[i].cells.length; j++){
+            data_csv += table.rows[i].cells[j].innerText
+            if(j == table.rows[i].cells.length-1) data_csv += '\n'
+            else data_csv += ','
+          }
+        }
+        var unix_time = String(Math.floor(new Date().getTime() / 1000))
+        var file_name = unix_time + '_pakcet.csv'
+        var blob = new Blob([ bom, data_csv], { 'type' : 'text/csv' })
+        if (window.navigator.msSaveBlob) {
+            window.navigator.msSaveBlob(blob, file_name)
+        } else {
+            document.getElementById('download').href = window.URL.createObjectURL(blob)
+            document.getElementById('download').download = file_name
+        }
+
+        delete data_csv;
+    }
+
+    function add_row_label(data_obj) {
+      var table = document.getElementById('mqtt_packet_table').createTHead()
+      var row = table.insertRow(-1)
+      for (var key in data_obj) {
+        if (key !== 'mqtt_packet') {
+          var col = row.insertCell(-1)
+          col.outerHTML = '<th>' + sanitaize(String(key)) + '</th>'
+        }
+      }
+    }
+
+    function add_row(data_obj) {
+      var table = document.getElementById('mqtt_packet_table').createTBody()
+      var row = table.insertRow(-1)
+      for (var key in data_obj) {
+        if (key !== 'mqtt_packet') {
+          var col = row.insertCell(-1)
+          col.innerHTML = sanitaize(String(data_obj[key]))
+        }
+      }
+    }
+
+    const evtSource = new EventSource('/payload')
+
+    evtSource.onerror = function() {
+      console.log('EventSource failed.')
+    }
+
+    evtSource.onmessage = function(e) {
+      let receive_data = '{}'
+      try {
+        receive_data = JSON.parse(e.data)
+        console.log(receive_data)
+      }
+      catch{
+        console.log('data-json parse error')
+        return
+      }
+      if (receive_data.id === 1) {
+        add_row_label(receive_data)
+      }
+      add_row(receive_data)
+      var documentElement = document.documentElement;
+      var y = documentElement.scrollHeight - documentElement.clientHeight;
+      window.scroll(0, y);
+
+    }
+  </script>
+  <body>
+    <header>
+      <h1>MQTT Packet Viewer</h1>
+      <b><a id='download' href='#' download='' onclick='handleDownload()'>csvファイルダウンロード</a></b>
+    </header>
+    <div>
+      <table class='sticky_table' id='mqtt_packet_table'>
+      </table>
+    </div>
+  </body>
+</html>
