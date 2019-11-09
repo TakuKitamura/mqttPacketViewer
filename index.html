@@ -80,36 +80,50 @@
       }
     }
 
-    const evtSource = new EventSource('/payload')
+    function auto_scroll(bool) {
 
-    evtSource.onerror = function() {
-      console.log('EventSource failed.')
     }
 
+    const evtSource = new EventSource('/payload')
+
     evtSource.onmessage = function(e) {
+      var table = document.getElementById('mqtt_packet_table')
+      table.innerHTML = ''
       let receive_data = '{}'
+      let data = e.data
       try {
-        receive_data = JSON.parse(e.data)
-        console.log(receive_data)
+        receive_data = JSON.parse(data)
+        // console.log(receive_data)
       }
       catch{
-        console.log('data-json parse error')
+        console.log(data)
         return
       }
-      if (receive_data.id === 1) {
-        add_row_label(receive_data)
+
+      for (var i = 0;  i < receive_data.length; i++) {
+        let el = receive_data[i]
+        if (i === 0) {
+          add_row_label(el)
+        }
+        add_row(el)
+        if (i === receive_data.length - 1) {
+          let timestamp = Math.floor(el.timestamp)
+          let now = new Date().getTime() / 1000
+          if (now - timestamp <= 3) {
+            var documentElement = document.documentElement;
+            var y = documentElement.scrollHeight - documentElement.clientHeight;
+            window.scroll(0, y);
+          }
+        }
       }
-      add_row(receive_data)
-      var documentElement = document.documentElement;
-      var y = documentElement.scrollHeight - documentElement.clientHeight;
-      window.scroll(0, y);
+
 
     }
   </script>
   <body>
     <header>
       <h1>MQTT Packet Viewer</h1>
-      <b><a id='download' href='#' download='' onclick='handleDownload()'>csvファイルダウンロード</a></b>
+      <!-- <b><a id='download' href='#' download='' onclick='handleDownload()'>csvファイルダウンロード</a></b> -->
     </header>
     <div>
       <table class='sticky_table' id='mqtt_packet_table'>
