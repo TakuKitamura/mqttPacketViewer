@@ -22,7 +22,7 @@ def append_json_to_file(data, path_file) -> bool:
 def get_tcp_payloads():
     capture = pyshark.LiveCapture(interface='lo0', display_filter='mqtt')
     for packet in capture.sniff_continuously():
-        payload_list = str(packet.tcp.payload).split(':')
+        payload_list = list(map(lambda x : '0x' + x, str(packet.tcp.payload).split(':')))
         timestamp = datetime.now().timestamp()
         file_name = PACKET_DIR_PATH + str(timestamp) + '_packet.bin'
         with open(file_name, 'wb') as f:
@@ -43,7 +43,6 @@ def get_tcp_payloads():
                 json_dict[dic_name] = dic_value
         # json_string = json.dumps(json_dict, ensure_ascii=False)
         mqtt_packet_json_path = PACKET_DIR_PATH + 'mqtt_packet.json'
-
         append_json_to_file(json_dict, mqtt_packet_json_path)
 
 if __name__ == "__main__":

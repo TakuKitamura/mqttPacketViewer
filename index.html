@@ -2,12 +2,17 @@
 <title>MQTT Packet Viewer</title>
 <head>
   <style type='text/css'>
+    body {
+      font-family: "SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif;
+      font-size: 1.1em;
+    }
     h1{
       text-align: center;
+      width: 100%;
     }
     table{
       border-collapse: collapse;
-      margin: 3% auto;
+      margin: 0 auto;
     }
     td,th{
       padding: 10px;
@@ -19,6 +24,10 @@
     }
     table tr td:nth-child(odd){
       background:#ececec;
+    }
+    button, input, select, textarea {
+      font-family : inherit;
+      font-size   : 100%;
     }
     .sticky_table thead th {
       position: -webkit-sticky;
@@ -33,97 +42,71 @@
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&quot;').replace(/'/g, '&#39;')
     }
 
-    function handleDownload() {
-        var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
-        var table = document.getElementById('mqtt_packet_table')
-        var data_csv=''
-
-        for(var i = 0;  i < table.rows.length; i++){
-          for(var j = 0; j < table.rows[i].cells.length; j++){
-            data_csv += table.rows[i].cells[j].innerText
-            if(j == table.rows[i].cells.length-1) data_csv += '\n'
-            else data_csv += ','
-          }
-        }
-        var unix_time = String(Math.floor(new Date().getTime() / 1000))
-        var file_name = unix_time + '_pakcet.csv'
-        var blob = new Blob([ bom, data_csv], { 'type' : 'text/csv' })
-        if (window.navigator.msSaveBlob) {
-            window.navigator.msSaveBlob(blob, file_name)
-        } else {
-            document.getElementById('download').href = window.URL.createObjectURL(blob)
-            document.getElementById('download').download = file_name
-        }
-
-        delete data_csv;
-    }
-
     function add_row_label(data_obj) {
       var table = document.getElementById('mqtt_packet_table').createTHead()
       var row = table.insertRow(-1)
       for (var key in data_obj) {
-        if (key !== 'mqtt_packet') {
+        if (key === 'mqtt_packet') {
           var col = row.insertCell(-1)
           col.outerHTML = '<th>' + sanitaize(String(key)) + '</th>'
+        } else {
+          var col = row.insertCell(-1)
+          col.outerHTML = '<th>' +  sanitaize(String(key)) + '</th>'
         }
       }
     }
 
-    function add_row(data_obj) {
+    function add_row(data_obj, id) {
       var table = document.getElementById('mqtt_packet_table').createTBody()
       var row = table.insertRow(-1)
       for (var key in data_obj) {
-        if (key !== 'mqtt_packet') {
+        if (key === 'mqtt_packet' || key === 'topic_name' || key === 'payload' || key === 'payload' || key === 'error_message') {
           var col = row.insertCell(-1)
-          col.innerHTML = sanitaize(String(data_obj[key]))
+          col.innerHTML=
+           String(data_obj[key]).length > 0 ? '<textarea readonly>' + sanitaize(String(data_obj[key])) + '</textarea>' : ''
+        }
+         else {
+          var col = row.insertCell(-1)
+          col.innerText = sanitaize(String(data_obj[key]))
         }
       }
-    }
-
-    function auto_scroll(bool) {
-
     }
 
     const evtSource = new EventSource('/payload')
 
+    let receive_data
     evtSource.onmessage = function(e) {
-      var table = document.getElementById('mqtt_packet_table')
-      table.innerHTML = ''
-      let receive_data = '{}'
-      let data = e.data
       try {
-        receive_data = JSON.parse(data)
-        // console.log(receive_data)
+        let before_receive_data = receive_data
+        receive_data = JSON.parse(e.data)
+
+        if (JSON.stringify(before_receive_data) === JSON.stringify(receive_data)) {
+          return
+        }
       }
       catch{
-        console.log(data)
+        console.log('json parse err')
         return
       }
+
+      var table = document.getElementById('mqtt_packet_table')
+      table.innerHTML = ''
 
       for (var i = 0;  i < receive_data.length; i++) {
         let el = receive_data[i]
         if (i === 0) {
           add_row_label(el)
         }
-        add_row(el)
-        if (i === receive_data.length - 1) {
-          let timestamp = Math.floor(el.timestamp)
-          let now = new Date().getTime() / 1000
-          if (now - timestamp <= 3) {
-            var documentElement = document.documentElement;
-            var y = documentElement.scrollHeight - documentElement.clientHeight;
-            window.scroll(0, y);
-          }
-        }
+        add_row(el, i)
       }
-
-
+      var documentElement = document.documentElement;
+        var y = documentElement.scrollHeight - documentElement.clientHeight;
+        window.scroll(0, y);
     }
   </script>
   <body>
     <header>
       <h1>MQTT Packet Viewer</h1>
-      <!-- <b><a id='download' href='#' download='' onclick='handleDownload()'>csvファイルダウンロード</a></b> -->
     </header>
     <div>
       <table class='sticky_table' id='mqtt_packet_table'>

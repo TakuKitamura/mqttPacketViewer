@@ -17,14 +17,9 @@ def sse():
     mqtt_packet_json_path = PACKET_DIR_PATH + 'mqtt_packet.json'
     if (os.path.isfile(mqtt_packet_json_path)):
         with open(mqtt_packet_json_path) as f:
-            yield 'data:{}\n\nretry:{}\n\n'.format(f.read(), 2000)
+            yield 'data:{}\n\nretry:{}\n\n'.format(f.read(), 3000)
     else:
-        yield 'data:{}\n\nretry:{}\n\n'.format('mqtt_packet_json is not found.', 2000)
-    # while (True):
-    # id = 1
-    # tcp_payloads = get_tcp_payloads()
-    # # print(1)
-    # for payload in tcp_payloads:
-    #     # print(1)
-    #     yield 'data:{}\n\n'.format(payload)
-run(host='localhost', port=3000, debug=False, reloader=False)
+        yield 'data:{}\n\nretry:{}\n\n'.format('mqtt_packet_json is not found.', 3000)
+
+if __name__ == "__main__":
+    run(host='localhost', port=3000, debug=False, reloader=False)
