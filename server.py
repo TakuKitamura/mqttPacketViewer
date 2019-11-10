@@ -22,4 +22,4 @@ def sse():
         yield 'data:{}\n\nretry:{}\n\n'.format('mqtt_packet_json is not found.', 3000)
 
 if __name__ == "__main__":
-    run(host='localhost', port=3000, debug=False, reloader=False)
+    run(host='0.0.0.0', port=3000, debug=False, reloader=False)
