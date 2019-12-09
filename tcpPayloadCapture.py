@@ -30,7 +30,7 @@ def get_tcp_payloads():
                 f.write(struct.pack("B", int(x, 16)))
         executed_file_path = './mqttPacketParser.out'
         command = [executed_file_path, file_name]
-        res = subprocess.check_output(command).decode('utf-8').split('\n')
+        res = subprocess.check_output(command).decode('utf-8', 'ignore').split('\n')
         json_dict = {'timestamp': timestamp, 'mqtt_packet': list(payload_list)}
         for el in res[:len(res)-1]:
             splite_equal = el.rsplit('=', 1)
